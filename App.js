@@ -1,7 +1,8 @@
 //react-native팀은 react-native서비스를 축소했고 커뮤니티에서 자체 package를 만들어야하고
 //expo팀은 react-native를 react-native의 기능을 확장하고 react-native를 쉽게 사용할 수 있도록 도와주는 서비스를 제공한다.
 import { StyleSheet, View, Text, ScrollView, Dimensions } from "react-native";
-
+import { useEffect, useState } from "react";
+import * as Location from "expo-location";
 //view => container (text를 사용할수 없다)
 //text => span, p...
 /* StatusBar는 상태바를 의미한다.  화면에 표시되지 않는 컴포넌트이고 
@@ -16,10 +17,35 @@ import { StyleSheet, View, Text, ScrollView, Dimensions } from "react-native";
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 export default function App() {
+  const [city, setCity] = useState("Loading...");
+  const [ok, setOk] = useState(true);
+  const [location, setLocation] = useState();
+
+  const ask = async () => {
+    const { granted } = await Location.requestForegroundPermissionsAsync();
+    if (!granted) {
+      setOk(false);
+    }
+
+    const {
+      coords: { latitude, longitude },
+    } = await Location.getCurrentPositionAsync({ accuracy: 5 });
+
+    const location = await Location.reverseGeocodeAsync({
+      latitude,
+      longitude,
+    });
+    setCity(location[0].city);
+  };
+
+  useEffect(() => {
+    ask();
+  }, []);
+
   return (
     <View style={styles.container}>
       <View style={styles.city}>
-        <Text style={styles.cityName}>Seoul</Text>
+        <Text style={styles.cityName}>{city}</Text>
       </View>
       <ScrollView
         pagingEnabled
