@@ -1,6 +1,13 @@
 //react-native팀은 react-native서비스를 축소했고 커뮤니티에서 자체 package를 만들어야하고
 //expo팀은 react-native를 react-native의 기능을 확장하고 react-native를 쉽게 사용할 수 있도록 도와주는 서비스를 제공한다.
-import { StyleSheet, View, Text, ScrollView, Dimensions } from "react-native";
+import {
+  StyleSheet,
+  View,
+  Text,
+  ScrollView,
+  Dimensions,
+  ActivityIndicator,
+} from "react-native";
 import { useEffect, useState } from "react";
 import * as Location from "expo-location";
 //view => container (text를 사용할수 없다)
@@ -16,12 +23,14 @@ import * as Location from "expo-location";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
+const API_KEY = process.env.EXPO_PUBLIC_WEATHER_API_KEY;
+
 export default function App() {
   const [city, setCity] = useState("Loading...");
   const [ok, setOk] = useState(true);
-  const [location, setLocation] = useState();
+  const [dailyWeather, setDailyWeather] = useState([]);
 
-  const ask = async () => {
+  const getWeather = async () => {
     const { granted } = await Location.requestForegroundPermissionsAsync();
     if (!granted) {
       setOk(false);
@@ -36,13 +45,19 @@ export default function App() {
       longitude,
     });
     setCity(location[0].city);
+
+    const response = await fetch(
+      `https://api.openweathermap.org/data/2.5/forecast?lat=${latitude}&lon=${longitude}&appid=${API_KEY}&units=metric`,
+    );
+    const json = await response.json();
+    setDailyWeather(json.list);
   };
 
   useEffect(() => {
-    ask();
+    getWeather();
   }, []);
 
-  return (
+  return ok ? (
     <View style={styles.container}>
       <View style={styles.city}>
         <Text style={styles.cityName}>{city}</Text>
@@ -53,29 +68,30 @@ export default function App() {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.weather}
       >
-        <View style={styles.day}>
-          <Text style={styles.temp}>27</Text>
-          <Text style={styles.description}>Sunny</Text>
-        </View>
-        <View style={styles.day}>
-          <Text style={styles.temp}>27</Text>
-          <Text style={styles.description}>Sunny</Text>
-        </View>
-        <View style={styles.day}>
-          <Text style={styles.temp}>27</Text>
-          <Text style={styles.description}>Sunny</Text>
-        </View>
-        <View style={styles.day}>
-          <Text style={styles.temp}>27</Text>
-          <Text style={styles.description}>Sunny</Text>
-        </View>
-        <View style={styles.day}>
-          <Text style={styles.temp}>27</Text>
-          <Text style={styles.description}>Sunny</Text>
-        </View>
+        {dailyWeather.length === 0 ? (
+          <View style={styles.day}>
+            <ActivityIndicator
+              color="white"
+              style={{ marginTop: 10 }}
+              size="large"
+            />
+          </View>
+        ) : (
+          dailyWeather.map((weather, index) => (
+            <View key={index} style={styles.day}>
+              <Text style={styles.temp}>
+                {parseFloat(weather.main.temp).toFixed(1)}
+              </Text>
+              <Text style={styles.description}>{weather.weather[0].main}</Text>
+              <Text style={styles.tinyText}>
+                {weather.weather[0].description}
+              </Text>
+            </View>
+          ))
+        )}
       </ScrollView>
     </View>
-  );
+  ) : null;
 }
 
 const styles = StyleSheet.create({
@@ -105,5 +121,8 @@ const styles = StyleSheet.create({
   description: {
     marginTop: -30,
     fontSize: 60,
+  },
+  tinyText: {
+    fontSize: 20,
   },
 });
