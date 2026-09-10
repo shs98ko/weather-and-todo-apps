@@ -15,11 +15,23 @@ import { theme } from "./color";
 export default function App() {
   const [working, setWorking] = useState(true);
   const [text, setText] = useState("");
+  const [toDos, setTodos] = useState({});
   const travel = () => setWorking(false);
   const work = () => setWorking(true);
 
   const onchangeText = (text) => {
     setText(text);
+  };
+
+  const addToDo = () => {
+    if (text === "") {
+      return;
+    }
+    const newToDos = Object.assign({}, toDos, {
+      [Date.now()]: { text, working },
+    });
+    setTodos(newToDos);
+    setText("");
   };
 
   return (
@@ -45,10 +57,12 @@ export default function App() {
         </TouchableOpacity>
       </View>
       <TextInput
+        onSubmitEditing={addToDo}
         style={styles.input}
         value={text}
         onChangeText={onchangeText}
         placeholder={working ? "Add a To Do" : "Where do you want to go?"}
+        returnKeyType="done"
       ></TextInput>
     </View>
   );
