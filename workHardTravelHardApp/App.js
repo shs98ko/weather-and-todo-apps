@@ -9,6 +9,7 @@ import {
   TouchableWithoutFeedback,
   Pressable,
   TextInput,
+  ScrollView,
 } from "react-native";
 import { theme } from "./color";
 
@@ -27,9 +28,7 @@ export default function App() {
     if (text === "") {
       return;
     }
-    const newToDos = Object.assign({}, toDos, {
-      [Date.now()]: { text, working },
-    });
+    const newToDos = { ...toDos, [Date.now()]: { text, working } };
     setTodos(newToDos);
     setText("");
   };
@@ -64,6 +63,13 @@ export default function App() {
         placeholder={working ? "Add a To Do" : "Where do you want to go?"}
         returnKeyType="done"
       ></TextInput>
+      <ScrollView>
+        {Object.keys(toDos).map((key) => (
+          <View key={key} style={styles.toDo}>
+            <Text style={styles.toDoText}>{toDos[key].text}</Text>
+          </View>
+        ))}
+      </ScrollView>
     </View>
   );
 }
@@ -89,7 +95,19 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     paddingHorizontal: 20,
     borderRadius: 30,
-    marginTop: 20,
+    marginVertical: 20,
     fontSize: 18,
+  },
+  toDo: {
+    backgroundColor: theme.grey,
+    borderRadius: 15,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    marginBottom: 10,
+  },
+  toDoText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "500",
   },
 });
