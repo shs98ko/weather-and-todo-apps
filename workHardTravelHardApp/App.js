@@ -6,15 +6,12 @@ import {
   Text,
   View,
   TouchableOpacity,
-  TouchableHighlight,
-  TouchableWithoutFeedback,
-  Pressable,
   Alert,
   TextInput,
   ScrollView,
 } from "react-native";
 import { theme } from "./color";
-import { Fontisto } from "@expo/vector-icons";
+import { Fontisto, FontAwesome5 } from "@expo/vector-icons";
 
 const STORAGE_KEY = "@toDos";
 
@@ -24,11 +21,18 @@ export default function App() {
   const [toDos, setToDos] = useState({});
 
   useEffect(() => {
+    initCategory();
     loadToDos();
   }, []);
 
-  const travel = () => setWorking(false);
-  const work = () => setWorking(true);
+  const travel = () => {
+    setWorking(false);
+    saveWorking(false);
+  };
+  const work = () => {
+    setWorking(true);
+    saveWorking(true);
+  };
 
   const onchangeText = (text) => {
     setText(text);
@@ -38,7 +42,10 @@ export default function App() {
     if (text === "") {
       return;
     }
-    const newToDos = { ...toDos, [Date.now()]: { text, working } };
+    const newToDos = {
+      ...toDos,
+      [Date.now()]: { text, working, success: false },
+    };
     setToDos(newToDos);
     setText("");
     await saveToDos(newToDos);
@@ -69,6 +76,44 @@ export default function App() {
     ]);
   };
 
+  const successTodo = (key) => {
+    const newToDos = { ...toDos };
+    newToDos[key].success = !newToDos[key].success;
+    setToDos(newToDos);
+    saveToDos(newToDos);
+  };
+
+  const saveWorking = async (isWorking) => {
+    const category = isWorking ? "working" : "travel";
+    await AsyncStorage.setItem("@key", category);
+  };
+
+  const initCategory = async () => {
+    const category = await AsyncStorage.getItem("@key");
+    setWorking(() => (category === "working" ? true : false));
+  };
+
+  const editText = (key) => {
+    Alert.prompt(
+      "Edit todo title",
+      "새로운 내용을 입력하세요",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Save",
+          onPress: (newText) => {
+            if (!newText || newText.trim() === "") return;
+            const newToDos = { ...toDos };
+            newToDos[key].text = newText;
+            setToDos(newToDos);
+            saveToDos(newToDos);
+          },
+        },
+      ],
+      "plain-text",
+      toDos[key].text,
+    );
+  };
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
@@ -105,10 +150,53 @@ export default function App() {
         {Object.keys(toDos).map((key) =>
           toDos[key].working === working ? (
             <View key={key} style={styles.toDo}>
-              <Text style={styles.toDoText}>{toDos[key].text}</Text>
-              <TouchableOpacity onPress={() => deleteTodo(key)}>
-                <Fontisto name="trash" size={18} color="red" />
-              </TouchableOpacity>
+              <View style={{ flex: 8, flexDirection: "row" }}>
+                <TouchableOpacity onPress={() => successTodo(key)}>
+                  <Fontisto
+                    name={
+                      toDos[key].success
+                        ? "checkbox-active"
+                        : "checkbox-passive"
+                    }
+                    size={18}
+                    color={toDos[key].success ? theme.grey : "white"}
+                  />
+                </TouchableOpacity>
+                <Text
+                  style={[
+                    styles.toDoText,
+                    {
+                      marginHorizontal: 10,
+                      textDecorationLine: toDos[key].success
+                        ? "line-through"
+                        : "none",
+                      color: toDos[key].success ? theme.grey : "white",
+                    },
+                  ]}
+                >
+                  {toDos[key].text}
+                </Text>
+              </View>
+              <View
+                style={{
+                  flex: 1,
+                  flexDirection: "row",
+                }}
+              >
+                <TouchableOpacity onPress={() => editText(key)}>
+                  <FontAwesome5
+                    name="edit"
+                    size={18}
+                    color="white"
+                  ></FontAwesome5>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{ marginHorizontal: 10 }}
+                  onPress={() => deleteTodo(key)}
+                >
+                  <Fontisto name="trash" size={18} color="red" />
+                </TouchableOpacity>
+              </View>
             </View>
           ) : null,
         )}
@@ -142,6 +230,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
   toDo: {
+    flex: 1,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -152,7 +241,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   toDoText: {
-    color: "white",
     fontSize: 16,
     fontWeight: "600",
   },
